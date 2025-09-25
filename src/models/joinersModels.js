@@ -8,7 +8,7 @@ const joinerSchema = mongoose.Schema(
             required: [true, "Please enter your name"]
         },
         joiners: {
-            type: Array,
+            type: String,
         },
 
         isDeleted: {

@@ -6,11 +6,12 @@ const routeGuard = require('../middleware/routeGuard');
 
 router.route('/')
     .get(events.getAllEvent)
-    .post(events.createEvent)
+    .post(routeGuard, events.createEvent)
 
 router.route('/:id')
     .get(events.getSingleEvent)
-    .put(events.updateEvent)
-    .delete(events.deleteEvent)
+    .put(routeGuard, events.updateEvent)
+    .delete(routeGuard, events.deleteEvent)
+router.get('/:id/creator', routeGuard, events.creatorEvent)
 
 module.exports = router

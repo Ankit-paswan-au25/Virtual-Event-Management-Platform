@@ -101,7 +101,7 @@ const login = asyncErrorHandler(async (req, res, next) => {
     // Set refresh token in HttpOnly cookie
     res.cookie('refreshToken', {
         refreshToken,
-        name: "test"
+        name: "loggedIn"
     }, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'development',
@@ -118,25 +118,17 @@ const login = asyncErrorHandler(async (req, res, next) => {
 });
 
 const logout = (req, res, next) => {
-
-
-
-    console.log(req.cookies)
-    req.clearCookie('refreshToken')
-    console.log(req.cookies, "yyyyyyyyyyyy")
-
-    // // destroy server session
-    req.cookies.destroy(err => {
-        //res.clearCookie('test'); // clear session id cookie
-        res.clearCookie('refreshToken'); // clear refresh token cookie
-        if (err) {
-            //   return res.status(500).json({ error: 'Failed to destroy session' });
-            return new AppError("Unable to destroy please try again later", 500)
-        }
-        res.status(200).send({
-            status: "success",
-        })
+    //resetting cookie
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
     })
+
+    // sending response
+    res.status(200).send({
+        status: "success",
+        message: "Logged out successfully"
+    });
 }
 
 module.exports = {

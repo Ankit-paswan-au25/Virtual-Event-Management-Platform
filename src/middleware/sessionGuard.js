@@ -4,25 +4,17 @@ const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel')
 
-// const sessionGuard = session({
-//     name: 'sid',               // cookie name for session id
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: false,
-//     cookie: {
-//         httpOnly: true,
-//         secure: process.env.NODE_ENV === 'production', // set true with HTTPS
-//         sameSite: 'lax',
-//         // maxAge: 1000 * 60 * 60 * 24 // 1 day for session cookie
-//         maxAge: 15 * 60 * 24
-//     }
-// })
+
 
 const sessionGuard = async (req, res, next) => {
     const cookie = req.cookies.refreshToken
 
     if (!cookie) {
 
+        return next(new AppError('Please  login again', 403))
+    }
+
+    if (cookie.name !== 'loggedIn') {
         return next(new AppError('Please  login again', 403))
     }
 

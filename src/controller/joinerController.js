@@ -4,38 +4,33 @@ const Event = require('../models/eventsModels')
 const joiner = require('../models/joinersModels')
 
 const joinInEvent = asyncErrorHandler(async (req, res, next) => {
-    const eventID = req.body.eventId
-    const joinerId = req.body.joinerId
-    if (!joinerId || joinerId.length <= 0) {
+    // getting data from request 
+    const { eventId, joinerId } = req.body
+
+    //if joiner not found
+    if (!joinerId) {
         next(new AppError('no joiner found', 404))
     }
 
-    const existingEvent = await Event.findById(eventID)
+    //getting event details
+    const existingEvent = await Event.findById(eventId)// Event.find({ _id: eventID })
 
-    if (!existingEvent) {
-        next(new AppError('event not exist', 404))
+    // checking event is available for booking or not
+    if (!existingEvent || existingEvent.isLocked) {
+        return next(new AppError('contact admin event is locked', 400))
     }
-    if (existingEvent.isLocked) {
-        return next(new AppError('event out of ticket', 400))
+
+    // checking if already joined same event
+    let isAlreadyExist = await joiner.findOne({ eventID: eventId, joiners: joinerId, isDeleted: false })
+    if (isAlreadyExist) {
+        return next(new AppError('you are already in this event', 409))
     }
 
-    if (existingEvent.joiners) {
-        let existingjoiner = await joiner.findById(existingEvent.joiners)
+    const newJoinee = await joiner.create({ eventID: eventId, joiners: joinerId, isDeleted: false })
 
-        existingjoiner.joiner = [...existingjoiner.joiner, ...joinerId]
-        let updatingjoiner = await joiner.findByIdAndUpdate(existingEvent.joiners, existingjoiner)
-    } else {
-        let newParticipants = {
-            eventID: eventID,
-            joiners: joinerId
-        }
-
-        let newJoiner = await joiner.create(newParticipants)
-    }
-    const updatedEvent = await Event.findById(eventID)
     res.status(200).send({
         status: "success",
-        data: updatedEvent
+        data: newJoinee
 
     })
 
@@ -43,29 +38,60 @@ const joinInEvent = asyncErrorHandler(async (req, res, next) => {
 
 const removeFromEvent = asyncErrorHandler(async (req, res, next) => {
 
-    const userId = req.body.eventId
-    const joinerId = req.body.joinerId
+    const { eventId, joinerId } = req.body
 
-    const existingjoiner = await joiner.findById(joinerId)
 
-    if (existingjoiner.joiner.includes(userId)) {
-        removeParticipant = existingjoiner.joiner.indexOf(userId)
-        existingjoiner.joiner = existingjoiner.joiner.splice(indexToRemove, 1);
-        let updatingjoiner = await joiner.findByIdAndUpdate(joinerId, existingjoiner)
-    }
 
-    const updatedEvent = await Event.findById(eventID)
+    const existingjoiner = await joiner.findOneAndDelete({ eventID: eventId, joiners: joinerId })
+
+
     res.status(200).send({
         status: "success",
-        data: updatedEvent
+        data: 'you are out from this event'
 
     })
 
 })
 
+const allEventByJoiner = asyncErrorHandler(async (req, res, next) => {
+    //getting joiner Id
+    const joinerId = req.params.id
+
+    //finding Events for user
+    const events = await joiner.find({ joiners: joinerId })
+    if (!events) {
+        return next(AppError('No Events found for you', 404))
+    }
+    //responsing
+    res.status(200).send({
+        status: 'success',
+        data: events
+    })
+
+})
+const allJoinerByEvent = asyncErrorHandler(async (req, res, next) => {
+    //getting EventId
+    const EventId = req.params.id
+
+    //finding joiners
+    const joiners = await joiner.find({ eventID: EventId })
+
+    if (!joiners) {
+        return next(AppError('No Joiners found', 404))
+    }
+
+    //responsing
+    res.status(200).send({
+        status: 'success',
+        data: joiners
+    })
+
+})
 
 
 module.exports = {
     joinInEvent,
-    removeFromEvent
+    removeFromEvent,
+    allEventByJoiner,
+    allJoinerByEvent
 }

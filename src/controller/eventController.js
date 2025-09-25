@@ -6,8 +6,8 @@ const AppError = require('../utils/appError')
 const createEvent = asyncErrorHandler(async (req, res, next) => {
     /*eventName dateOfEvent timeOfEvent seatInEvent description */
 
-    const { eventName, dateOfEvent, timeOfEvent, seatInEvent, description, createdBy } = req.body
-    if (!eventName || !dateOfEvent || !timeOfEvent || !seatInEvent || !description, !createdBy) {
+    const { eventName, dateOfEvent, timeOfEvent, seatInEvent, description, createdBy, venue } = req.body
+    if (!eventName || !dateOfEvent || !timeOfEvent || !seatInEvent || !description || !createdBy, !venue) {
         return next(new AppError('Please fill all the fields', 400))
     }
     const newEvent = {
@@ -16,7 +16,8 @@ const createEvent = asyncErrorHandler(async (req, res, next) => {
         timeOfEvent: timeOfEvent,
         seatInEvent: seatInEvent,
         description: description,
-        createdBy: createdBy
+        createdBy: createdBy,
+        venue: venue
     }
 
     const createdEvent = await Event.create(newEvent)
@@ -53,40 +54,13 @@ const getAllEvent = asyncErrorHandler(async (req, res, next) => {
 const getSingleEvent = asyncErrorHandler(async (req, res, next) => {
     const eventId = req.params.id
 
-    // const theEvent = await Event.findById(eventId)
+    const theEvent = await Event.findById(eventId)
 
-    // if (!theEvent) {
-    //     return next(new AppError('No event Found by this id', 404))
-    // }
+    if (!theEvent) {
+        return next(new AppError('No event Found by this id', 404))
+    }
 
-    db.events.aggregate([
-        {
-            $match: { _id: eventId }   // find only the given event
-        },
-        {
-            $lookup: {
-                from: "participants",
-                localField: "_id",
-                foreignField: "eventId",
-                as: "participants"
-            }
-        },
-        {
-            $addFields: {
-                participantCount: { $size: "$participants" }
-            }
-        },
-        {
-            $project: {
-                eventName: 1,
-                dateOfEvent: 1,
-                timeOfEvent: 1,
-                seatInEvent: 1,
-                description: 1,
-                createdBy: 1,
-                participantCount: 1
-            }
-        }])
+
 
     res.status(200).send({
         status: "success",
@@ -134,14 +108,14 @@ const deleteEvent = asyncErrorHandler(async (req, res, next) => {
 });
 
 
-const getAllEventByAdmin = asyncErrorHandler(async (req, res, next) => {
+const creatorEvent = asyncErrorHandler(async (req, res, next) => {
 
     const creatorID = req.params.id
-    const allEvents = await find({
+    const allEvents = await Event.find({
         createdBy: creatorID
     })
 
-    if (!allEventByAdmin) {
+    if (!allEvents) {
         next(new AppError('nothing found created by you', 404))
     }
 
@@ -150,8 +124,8 @@ const getAllEventByAdmin = asyncErrorHandler(async (req, res, next) => {
 
     res.status(200).send({
         status: "success",
-        total: allEventByAdmin.length,
-        data: allEventByAdmin
+        total: allEvents.length,
+        data: allEvents
     })
 })
 
@@ -160,5 +134,6 @@ module.exports = {
     getAllEvent,
     getSingleEvent,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    creatorEvent
 }
